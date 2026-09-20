@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMMM & KOBİ Fiili Stok Sayım ve Envanter Tutanak Portalı | VUK 186 Uyumlu</title>
+    <style>
+        :root {
+            --primary: #047857;
+            --primary-hover: #065f46;
+            --secondary: #0f172a;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --danger: #dc2626;
+            --success: #16a34a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text-main); line-height: 1.5; padding: 32px 16px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        .header {
+            text-align: center; margin-bottom: 24px; background: white; padding: 30px 20px;
+            border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: relative; overflow: hidden;
+        }
+        .header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); }
+        .header-badge {
+            display: inline-block; background: #d1fae5; color: var(--primary);
+            font-size: 0.78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px;
+        }
+        .header h1 { font-size: 1.6rem; color: var(--secondary); margin-bottom: 8px; font-weight: 800; }
+        .header p { font-size: 0.9rem; color: var(--text-muted); max-width: 680px; margin: 0 auto; }
+
+        .card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .card-title {
+            font-size: 1.05rem; font-weight: 700; color: var(--secondary); margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.full { grid-column: span 2; }
+        label { font-size: 0.83rem; font-weight: 600; color: #334155; }
+        label span.req { color: #dc2626; }
+
+        input, select, textarea {
+            width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.88rem; outline: none; background: #f8fafc; color: var(--text-main);
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1); }
+
+        .table-items { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.85rem; }
+        .table-items th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 700; color: #475569; border: 1px solid var(--border); }
+        .table-items td { padding: 6px 8px; border: 1px solid var(--border); vertical-align: middle; }
+
+        .btn-add-row {
+            background: #e2e8f0; color: #334155; border: none; padding: 8px 16px; border-radius: 6px;
+            font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-add-row:hover { background: #cbd5e1; }
+
+        .btn-submit {
+            width: 100%; background: var(--primary); color: white; border: none; padding: 14px;
+            border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-submit:hover { background: var(--primary-hover); }
+
+        .result-box {
+            display: none; background: white; border: 2px solid #a7f3d0; border-radius: 12px;
+            padding: 32px 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+        }
+
+        .inventory-protocol {
+            border: 2px solid #0f172a; padding: 28px; border-radius: 8px; background: #fff; margin-top: 20px;
+            font-family: 'Times New Roman', Times, serif; line-height: 1.5; font-size: 0.95rem;
+        }
+        .protocol-header { text-align: center; font-weight: bold; font-size: 1.25rem; margin-bottom: 16px; text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full { grid-column: span 1; }
+            .table-items { display: block; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="header-badge">213 SAYILI VUK m. 186 VE TTK UYUMLU</div>
+        <h1>Fiili Stok Sayım ve Envanter Tespit Portalı</h1>
+        <p>Depo, şube ve işletmelerde dönem sonu veya ara sayım tutanaklarını tanzim edin, 197/397 hesap envanter farklarını hesaplayın ve resmi tutanağı tek tıkla basın.</p>
+    </div>
+
+    <form id="stokForm" onsubmit="handleStokSubmit(event)">
+        <!-- 1. Mükellef & Depo Bilgileri -->
+        <div class="card">
+            <h2 class="card-title">🏢 1. Mükellef ve Depo / Şube Bilgileri</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Şirket Unvanı / Mükellef Adı <span class="req">*</span></label>
+                    <input type="text" id="companyTitle" required placeholder="Firma tam unvanı">
+                </div>
+                <div class="form-group">
+                    <label>Vergi Kimlik No (VKN / TCKN) <span class="req">*</span></label>
+                    <input type="text" id="taxId" required placeholder="10 haneli VKN veya 11 haneli TCKN" maxlength="11">
+                </div>
+                <div class="form-group">
+                    <label>Bağlı Olduğu Vergi Dairesi <span class="req">*</span></label>
+                    <input type="text" id="taxOffice" required placeholder="Örn: Kadıköy V.D.">
+                </div>
+                <div class="form-group">
+                    <label>Sayım Yapılan Depo / Şube <span class="req">*</span></label>
+                    <input type="text" id="warehouseName" required placeholder="Örn: Ana Merkez Depo, Şube 1, Lojistik Depo">
+                </div>
+                <div class="form-group">
+                    <label>Sayım Tarihi ve Saati <span class="req">*</span></label>
+                    <input type="datetime-local" id="countDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Sayım Türü <span class="req">*</span></label>
+                    <select id="countType" required>
+                        <option value="Dönem Sonu (Yıl Sonu) Genel Envanteri">Dönem Sonu (Yıl Sonu) Genel Envanteri</option>
+                        <option value="Geçici Vergi Dönemi Ara Sayımı">Geçici Vergi Dönemi Ara Sayımı</option>
+                        <option value="Aylık Rutin Depo Kontrol Sayımı">Aylık Rutin Depo Kontrol Sayımı</option>
+                        <option value="Devir / Şirket Birleşmesi Sayımı">Devir / Şirket Birleşmesi Sayımı</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Sayım Heyeti -->
+        <div class="card">
+            <h2 class="card-title">👥 2. Sayım Heyeti ve Yetkililer</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Sayım Komisyon Başkanı <span class="req">*</span></label>
+                    <input type="text" id="headOfficer" required placeholder="Ad Soyad - Unvan (Örn: Depo Müdürü)">
+                </div>
+                <div class="form-group">
+                    <label>Sayım Memuru / Görevli <span class="req">*</span></label>
+                    <input type="text" id="countOfficer" required placeholder="Ad Soyad - Unvan (Örn: Depo Görevlisi)">
+                </div>
+                <div class="form-group full">
+                    <label>SMMM / Bağımsız Denetçi / Mali İşler Yetkilisi</label>
+                    <input type="text" id="auditorName" placeholder="Ad Soyad - SMMM / YMM / Mali İşler Müdürü">
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Emtia & Stok Kalemleri Tablosu -->
+        <div class="card">
+            <h2 class="card-title">📦 3. Sayılan Emtia ve Envanter Kalemleri</h2>
+            <table class="table-items" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Stok Kodu / Barkod</th>
+                        <th>Ürün Adı ve Cinsi</th>
+                        <th style="width: 80px;">Birim</th>
+                        <th style="width: 90px;">Kayıtlı Stok</th>
+                        <th style="width: 90px;">Fiili Sayım</th>
+                        <th style="width: 100px;">Birim Maliyet (TL)</th>
+                        <th style="width: 90px;">Fark</th>
+                        <th style="width: 110px;">Fark Tutarı</th>
+                        <th style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTbody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                <button type="button" class="btn-add-row" onclick="addRow()">➕ Yeni Kalem Ekle</button>
+                <div style="font-size: 0.9rem; font-weight: 700;">
+                    Toplam Kalem: <span id="lblTotalItems">0</span> | Net Fark Tutarı: <span id="lblNetDiff" style="color: var(--primary);">0.00 TL</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+            <span>📋 Sayım Tutanağını Onayla & Resmi Envanter Çıktısını Al</span>
+        </button>
+    </form>
+
+    <!-- Success View & Printable Protocol -->
+    <div class="result-box" id="resultBox">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2.8rem; margin-bottom: 8px;">📑</div>
+            <h2 style="color: var(--secondary);">Envanter ve Stok Sayım Tutanağı Hazırlandı</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Tutanak kayıt altına alınmıştır. VUK 186 uyarınca ıslak imzalı veya e-imzalı olarak muhafaza ediniz.
+            </p>
+            <div style="margin: 14px 0; font-size: 1.35rem; font-weight: 800; color: var(--primary);" id="trackingCodeDisplay">SAYIM-2026-0000</div>
+        </div>
+
+        <div class="inventory-protocol" id="printArea">
+            <div class="protocol-header">DÖNEM SONU FİİLİ STOK SAYIM VE ENVANTER TESPİT TUTANAĞI<br><span style="font-size: 0.85rem; font-weight: normal;">(213 Sayılı Vergi Usul Kanunu m. 186-191 Uyarınca)</span></div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.9rem;">
+                <tr>
+                    <td style="padding: 4px 0;"><b>Mükellef Unvanı:</b> <span id="prComp"></span></td>
+                    <td style="padding: 4px 0;"><b>Vergi Dairesi & VKN:</b> <span id="prTax"></span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0;"><b>Sayım Yapılan Yer:</b> <span id="prLoc"></span></td>
+                    <td style="padding: 4px 0;"><b>Sayım Tarihi:</b> <span id="prDate"></span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0;" colspan="2"><b>Sayım Amacı / Türü:</b> <span id="prType"></span></td>
+                </tr>
+            </table>
+
+            <p style="margin-bottom: 10px;">
+                Yukarıda bilgileri yazılı işletmede teşkil olunan Sayım Heyeti huzurunda, işletme kayıtlarında yer alan emtia ile depoda fiilen mevcut bulunan emtianın sayımı, tartımı ve tespiti yapılmış olup neticeleri aşağıya dercedilmiştir:
+            </p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.85rem; border: 1px solid #000;">
+                <thead>
+                    <tr style="background: #f1f5f9; border-bottom: 1px solid #000;">
+                        <th style="border: 1px solid #000; padding: 6px;">Stok Kodu</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Cinsi / Malın Nevi</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Birim</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Kayıtlı</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Fiili</th>
+                        <th style="border: 1px solid #000; padding: 6px;">B. Maliyet</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Fark</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Fark Tutarı</th>
+                    </tr>
+                </thead>
+                <tbody id="prItemsBody"></tbody>
+            </table>
+
+            <p style="font-size: 0.88rem; line-height: 1.5; margin-bottom: 24px;">
+                İşbu tutanak, taraflarca yapılan fiili sayım neticesinde tanzim edilmiş olup, tespit edilen noksanlık ve fazlalıklar VUK ve Tekdüzen Hesap Planı çerçevesinde (197 Sayım ve Tesellüm Noksanları / 397 Sayım ve Tesellüm Fazlaları) yasal kayıtlara intikal ettirilmek üzere imza altına alınmıştır.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; font-size: 0.85rem; margin-top: 24px;">
+                <div>
+                    <b>Sayım Komisyon Başkanı</b><br>
+                    <span id="prHead"></span><br><br>
+                    İmza
+                </div>
+                <div>
+                    <b>Sayım Memuru / Görevli</b><br>
+                    <span id="prOff"></span><br><br>
+                    İmza
+                </div>
+                <div>
+                    <b>SMMM / Denetçi</b><br>
+                    <span id="prAud"></span><br><br>
+                    Kaşe / İmza
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px;">
+            <button class="btn-submit" style="width: auto; padding: 10px 22px; background: #0f172a;" onclick="window.print()">🖨️ Resmi Tutanağı Yazdır / PDF</button>
+            <button class="btn-submit" style="width: auto; padding: 10px 22px; background: #e2e8f0; color: #334155;" onclick="location.reload()">➕ Yeni Sayım Tutanağı</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let items = [];
+
+function addRow(stockCode='', name='', unit='Adet', bookQty=0, physQty=0, cost=0) {
+    const id = Date.now() + Math.floor(Math.random() * 100);
+    items.push({ id, stock_code: stockCode, name, unit, book_qty: bookQty, phys_qty: physQty, unit_cost: cost });
+    renderTableRows();
+}
+
+function removeRow(id) {
+    items = items.filter(x => x.id !== id);
+    renderTableRows();
+}
+
+function updateRow(id, field, val) {
+    const it = items.find(x => x.id === id);
+    if (!it) return;
+    if (field === 'book_qty' || field === 'phys_qty' || field === 'unit_cost') {
+        it[field] = parseFloat(val) || 0;
+    } else {
+        it[field] = val;
+    }
+    renderTableRows(false);
+}
+
+function renderTableRows(rebuildInputs=true) {
+    const tbody = document.getElementById('itemsTbody');
+    let netDiff = 0;
+
+    tbody.innerHTML = items.map((it, idx) => {
+        const diffQty = it.phys_qty - it.book_qty;
+        const diffVal = diffQty * it.unit_cost;
+        netDiff += diffVal;
+
+        let diffColor = '#64748b';
+        let diffText = 'Tam';
+        if (diffQty > 0) { diffColor = '#16a34a'; diffText = `+${diffQty} (Fazla)`; }
+        if (diffQty < 0) { diffColor = '#dc2626'; diffText = `${diffQty} (Noksan)`; }
+
+        return `
+            <tr>
+                <td><input type="text" value="${escapeHtml(it.stock_code)}" onchange="updateRow(${it.id}, 'stock_code', this.value)" placeholder="STK-001"></td>
+                <td><input type="text" value="${escapeHtml(it.name)}" onchange="updateRow(${it.id}, 'name', this.value)" placeholder="Ürün Tanımı" required></td>
+                <td>
+                    <select onchange="updateRow(${it.id}, 'unit', this.value)">
+                        <option value="Adet" ${it.unit==='Adet'?'selected':''}>Adet</option>
+                        <option value="Kg" ${it.unit==='Kg'?'selected':''}>Kg</option>
+                        <option value="Metre" ${it.unit==='Metre'?'selected':''}>Metre</option>
+                        <option value="Koli" ${it.unit==='Koli'?'selected':''}>Koli</option>
+                        <option value="Litre" ${it.unit==='Litre'?'selected':''}>Litre</option>
+                    </select>
+                </td>
+                <td><input type="number" step="0.01" value="${it.book_qty}" oninput="updateRow(${it.id}, 'book_qty', this.value)"></td>
+                <td><input type="number" step="0.01" value="${it.phys_qty}" oninput="updateRow(${it.id}, 'phys_qty', this.value)"></td>
+                <td><input type="number" step="0.01" value="${it.unit_cost}" oninput="updateRow(${it.id}, 'unit_cost', this.value)"></td>
+                <td style="color:${diffColor}; font-weight:700;">${diffText}</td>
+                <td style="color:${diffColor}; font-weight:700;">${diffVal.toLocaleString('tr-TR', {minimumFractionDigits:2})} TL</td>
+                <td><button type="button" onclick="removeRow(${it.id})" style="border:none; background:none; cursor:pointer; color:#dc2626;">✖</button></td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('lblTotalItems').innerText = items.length;
+    document.getElementById('lblNetDiff').innerText = netDiff.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL';
+}
+
+async function handleStokSubmit(e) {
+    e.preventDefault();
+    if (items.length === 0) {
+        alert('Lütfen en az 1 sayım kalemi ekleyiniz.');
+        return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerText = '⏳ Tutanak Hazırlanıyor...';
+
+    const countDate = document.getElementById('countDate').value;
+    const payload = {
+        company_title: document.getElementById('companyTitle').value.trim(),
+        tax_id: document.getElementById('taxId').value.trim(),
+        tax_office: document.getElementById('taxOffice').value.trim(),
+        warehouse_name: document.getElementById('warehouseName').value.trim(),
+        count_date: countDate,
+        count_type: document.getElementById('countType').value,
+        head_officer: document.getElementById('headOfficer').value.trim(),
+        count_officer: document.getElementById('countOfficer').value.trim(),
+        auditor_name: document.getElementById('auditorName').value.trim(),
+        items_json: JSON.stringify(items),
+        total_items: items.length,
+        status: 'Tutanak Tanzim Edildi',
+        created_at: new Date().toISOString()
+    };
+
+    let trackingCode = 'SAYIM-2026-' + Math.floor(1000 + Math.random() * 9000);
+
+    try {
+        const res = await fetch('/api/sayim-kaydet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.tracking_code) trackingCode = data.tracking_code;
+        }
+    } catch (err) {
+        const local = JSON.parse(localStorage.getItem('stok_sayimlar') || '[]');
+        payload.tracking_code = trackingCode;
+        local.push(payload);
+        localStorage.setItem('stok_sayimlar', JSON.stringify(local));
+    }
+
+    document.getElementById('stokForm').style.display = 'none';
+    document.getElementById('resultBox').style.display = 'block';
+    document.getElementById('trackingCodeDisplay').innerText = trackingCode;
+
+    // Fill print protocol
+    document.getElementById('prComp').innerText = payload.company_title;
+    document.getElementById('prTax').innerText = `${payload.tax_office} - ${payload.tax_id}`;
+    document.getElementById('prLoc').innerText = payload.warehouse_name;
+    document.getElementById('prDate').innerText = countDate ? new Date(countDate).toLocaleString('tr-TR') : '-';
+    document.getElementById('prType').innerText = payload.count_type;
+    document.getElementById('prHead').innerText = payload.head_officer;
+    document.getElementById('prOff').innerText = payload.count_officer;
+    document.getElementById('prAud').innerText = payload.auditor_name || 'Mali Müşavir';
+
+    const pbody = document.getElementById('prItemsBody');
+    pbody.innerHTML = items.map(it => {
+        const diffQty = it.phys_qty - it.book_qty;
+        const diffVal = diffQty * it.unit_cost;
+        return `
+            <tr>
+                <td style="border: 1px solid #000; padding: 4px 6px;">${escapeHtml(it.stock_code)}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px;">${escapeHtml(it.name)}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px;">${escapeHtml(it.unit)}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px; text-align:right;">${it.book_qty}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px; text-align:right;">${it.phys_qty}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px; text-align:right;">${it.unit_cost.toFixed(2)} TL</td>
+                <td style="border: 1px solid #000; padding: 4px 6px; text-align:right; font-weight:bold;">${diffQty}</td>
+                <td style="border: 1px solid #000; padding: 4px 6px; text-align:right; font-weight:bold;">${diffVal.toFixed(2)} TL</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function escapeHtml(s) {
+    return String(s||'').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.onload = () => {
+    // default 2 sample items
+    addRow('STK-001', 'Ticari Mal A (A4 Fotokopi Kağıdı)', 'Koli', 100, 95, 250);
+    addRow('STK-002', 'Ticari Mal B (Toner Kartuş)', 'Adet', 40, 42, 850);
+};
+</script>
+
+</body>
+</html>
