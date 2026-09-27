@@ -77,6 +77,19 @@ python scripts/test_sayim.py
 
 ---
 
+## 🌐 E-Dönüşüm Açık Kaynak Ekosistemi
+
+Bu tutanak yönetim aracı, [@eimza-kep](https://github.com/eimza-kep) açık kaynak ekosisteminin envanter ve muhasebe denetim modülüdür. İlgili diğer araçlar:
+
+* 📊 [muhasebe-excel-sablonlari](https://github.com/eimza-kep/muhasebe-excel-sablonlari) - Amortisman, stok ve gelir tablosu kontrol Excel şablonları.
+* 🏢 [kobi-finans-yonetim-excel-sablonlari](https://github.com/eimza-kep/kobi-finans-yonetim-excel-sablonlari) - Stok takip, kritik seviye uyarı ve başabaş analizi araçları.
+* 📄 [e-fatura-xml-goruntuleyici](https://github.com/eimza-kep/e-fatura-xml-goruntuleyici) - e-İrsaliye fiili sevk ve mal teslim bilgisi ayrıştırma aracı.
+* 📨 [muhasebe-mukellef-evrak-scripti](https://github.com/eimza-kep/muhasebe-mukellef-evrak-scripti) - Mükelleflerden aylık evrak ve fatura toplama portali.
+* 🌟 [awesome-turkiye-e-donusum](https://github.com/eimza-kep/awesome-turkiye-e-donusum) - Türkiye e-Dönüşüm açık kaynak araçları ve kütüphaneleri kürasyonu.
+
+---
+
 ## ⚖️ Lisans
 
 Bu proje [MIT Lisansı](LICENSE) kapsamında açık kaynak olarak sunulmuştur.
+
