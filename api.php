@@ -21,6 +21,73 @@ function saveStoredData($file, $data) {
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
+function reconcileEirsaliye($counted, $irsItems, $irsNo = 'GIB2026-IRS-001') {
+    $map = [];
+    foreach ($irsItems as $it) {
+        $key = strtolower(trim($it['stock_code'] ?? ($it['name'] ?? '')));
+        if ($key) $map[$key] = $it;
+    }
+
+    $rows = [];
+    $totShortage = 0;
+    $totSurplus = 0;
+    $totShortageAmt = 0;
+    $totSurplusAmt = 0;
+    $matchedCount = 0;
+
+    foreach ($counted as $c) {
+        $cKey = strtolower(trim($c['stock_code'] ?? ''));
+        $nKey = strtolower(trim($c['name'] ?? ''));
+        $m = $map[$cKey] ?? ($map[$nKey] ?? null);
+
+        $phys = floatval($c['phys_qty'] ?? 0);
+        $book = floatval($c['book_qty'] ?? 0);
+        $cost = floatval($c['unit_cost'] ?? 0);
+
+        $irsQty = $m ? floatval($m['quantity'] ?? $book) : $book;
+        if ($m) $matchedCount++;
+
+        $diff = $phys - $irsQty;
+        $diffVal = round($diff * $cost, 2);
+
+        $st = 'TAM_MUTABIK';
+        if ($diff < 0) {
+            $st = 'EKSIK_TESLIM';
+            $totShortage += abs($diff);
+            $totShortageAmt += abs($diffVal);
+        } elseif ($diff > 0) {
+            $st = 'FAZLA_TESLIM';
+            $totSurplus += $diff;
+            $totSurplusAmt += $diffVal;
+        }
+
+        $rows[] = [
+            'stock_code' => $c['stock_code'] ?? '',
+            'name' => $c['name'] ?? '',
+            'unit' => $c['unit'] ?? 'Adet',
+            'eirsaliye_qty' => $irsQty,
+            'phys_counted_qty' => $phys,
+            'diff_qty' => $diff,
+            'diff_amount' => $diffVal,
+            'status' => $st
+        ];
+    }
+
+    $isReconciled = ($totShortage == 0 && $totSurplus == 0);
+    return [
+        'irsaliye_no' => $irsNo,
+        'total_items_checked' => count($counted),
+        'matched_with_eirsaliye_count' => $matchedCount,
+        'is_full_reconciled' => $isReconciled,
+        'total_shortage_qty' => $totShortage,
+        'total_surplus_qty' => $totSurplus,
+        'total_shortage_amount' => $totShortageAmt,
+        'total_surplus_amount' => $totSurplusAmt,
+        'summary' => "e-İrsaliye ({$irsNo}) Mutabakatı: " . ($isReconciled ? "TAM MUTABIK" : "{$totShortage} Noksan, {$totSurplus} Fazla"),
+        'rows' => $rows
+    ];
+}
+
 $action = $_GET['action'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -43,6 +110,14 @@ if ($method === 'POST') {
         }
         saveStoredData($dataFile, $records);
         echo json_encode(['status' => 'success', 'updated' => $updated]);
+        exit();
+    }
+
+    if ($action === 'eirsaliye-mutabakat' || (isset($input['action']) && $input['action'] === 'eirsaliye-mutabakat')) {
+        $counted = $input['counted_items'] ?? [];
+        $irsItems = $input['eirsaliye_items'] ?? [];
+        $irsNo = $input['irsaliye_no'] ?? 'GIB2026-IRS-001';
+        echo json_encode(reconcileEirsaliye($counted, $irsItems, $irsNo), JSON_UNESCAPED_UNICODE);
         exit();
     }
 

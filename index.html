@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMMM & KOBİ Fiili Stok Sayım ve Envanter Tutanak Portalı | VUK 186 Uyumlu</title>
+    <!-- HTML5 QR / Barcode Scanner CDN -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         :root {
             --primary: #047857;
@@ -16,11 +18,12 @@
             --text-muted: #64748b;
             --danger: #dc2626;
             --success: #16a34a;
+            --warning: #d97706;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body { background: var(--bg); color: var(--text-main); line-height: 1.5; padding: 32px 16px; min-height: 100vh; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1040px; margin: 0 auto; }
 
         .header {
             text-align: center; margin-bottom: 24px; background: white; padding: 30px 20px;
@@ -33,7 +36,7 @@
             font-size: 0.78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px;
         }
         .header h1 { font-size: 1.6rem; color: var(--secondary); margin-bottom: 8px; font-weight: 800; }
-        .header p { font-size: 0.9rem; color: var(--text-muted); max-width: 680px; margin: 0 auto; }
+        .header p { font-size: 0.9rem; color: var(--text-muted); max-width: 720px; margin: 0 auto; }
 
         .card {
             background: var(--card); border: 1px solid var(--border); border-radius: 12px;
@@ -56,21 +59,40 @@
         }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1); }
 
-        .table-items { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.85rem; }
+        .btn-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .btn-action {
+            background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border);
+            padding: 8px 14px; border-radius: 6px; font-size: 0.83rem; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+        }
+        .btn-action:hover { background: #e2e8f0; }
+        .btn-action-primary { background: #d1fae5; color: var(--primary); border-color: #a7f3d0; }
+        .btn-action-primary:hover { background: #a7f3d0; }
+
+        /* Camera Scanner Box */
+        #scannerBox {
+            display: none; background: #0f172a; padding: 16px; border-radius: 10px; margin-bottom: 16px; text-align: center; color: white;
+        }
+        #reader { width: 100%; max-width: 480px; margin: 0 auto; border-radius: 8px; overflow: hidden; }
+
+        .scan-toast {
+            display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;
+            padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px;
+        }
+
+        .table-items { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
         .table-items th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 700; color: #475569; border: 1px solid var(--border); }
         .table-items td { padding: 6px 8px; border: 1px solid var(--border); vertical-align: middle; }
-
-        .btn-add-row {
-            background: #e2e8f0; color: #334155; border: none; padding: 8px 16px; border-radius: 6px;
-            font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn-add-row:hover { background: #cbd5e1; }
 
         .btn-submit {
             width: 100%; background: var(--primary); color: white; border: none; padding: 14px;
             border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;
         }
         .btn-submit:hover { background: var(--primary-hover); }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(2px); }
+        .modal-card { background: white; width: 100%; max-width: 700px; border-radius: 12px; padding: 24px; max-height: 90vh; overflow-y: auto; }
 
         .result-box {
             display: none; background: white; border: 2px solid #a7f3d0; border-radius: 12px;
@@ -94,9 +116,9 @@
 
 <div class="container">
     <div class="header">
-        <div class="header-badge">213 SAYILI VUK m. 186 VE TTK UYUMLU</div>
-        <h1>Fiili Stok Sayım ve Envanter Tespit Portalı</h1>
-        <p>Depo, şube ve işletmelerde dönem sonu veya ara sayım tutanaklarını tanzim edin, 197/397 hesap envanter farklarını hesaplayın ve resmi tutanağı tek tıkla basın.</p>
+        <div class="header-badge">213 SAYILI VUK m. 186 VE GİB E-İRSALİYE ENTEGRASYONLU</div>
+        <h1>Fiili Stok Sayım, Kamera Barkod ve e-İrsaliye Mutabakat Portalı</h1>
+        <p>Kamera ile barkod/QR okutarak fiili sayım yapın, resmi e-İrsaliye sevk miktarları ile anlık mutabakat sağlayın ve VUK 186 yasal envanter tutanağını tek tıkla basın.</p>
     </div>
 
     <form id="stokForm" onsubmit="handleStokSubmit(event)">
@@ -130,6 +152,7 @@
                         <option value="Dönem Sonu (Yıl Sonu) Genel Envanteri">Dönem Sonu (Yıl Sonu) Genel Envanteri</option>
                         <option value="Geçici Vergi Dönemi Ara Sayımı">Geçici Vergi Dönemi Ara Sayımı</option>
                         <option value="Aylık Rutin Depo Kontrol Sayımı">Aylık Rutin Depo Kontrol Sayımı</option>
+                        <option value="e-İrsaliye Teslimat Mutabakat Sayımı">e-İrsaliye Teslimat Mutabakat Sayımı</option>
                         <option value="Devir / Şirket Birleşmesi Sayımı">Devir / Şirket Birleşmesi Sayımı</option>
                     </select>
                 </div>
@@ -157,14 +180,41 @@
 
         <!-- 3. Emtia & Stok Kalemleri Tablosu -->
         <div class="card">
-            <h2 class="card-title">📦 3. Sayılan Emtia ve Envanter Kalemleri</h2>
+            <h2 class="card-title">📦 3. Sayılan Emtia, Barkod Okuma ve Envanter Kalemleri</h2>
+
+            <!-- Action Toolbar for Scanner & e-Irsaliye -->
+            <div class="btn-toolbar">
+                <button type="button" class="btn-action btn-action-primary" onclick="toggleCameraScanner()">
+                    📷 Kamera ile Barkod / QR Okut
+                </button>
+                <button type="button" class="btn-action" onclick="openEirsaliyeModal()">
+                    🧾 e-İrsaliye ile Karşılaştır & Mutabakat Yap
+                </button>
+                <button type="button" class="btn-action" onclick="addRow()">
+                    ➕ Manuel Kalem Ekle
+                </button>
+            </div>
+
+            <!-- Toast alert for scanner -->
+            <div id="scanToast" class="scan-toast"></div>
+
+            <!-- Camera Viewfinder Box -->
+            <div id="scannerBox">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                    <span style="font-weight:700; font-size:0.9rem;">📷 Barkod / QR Kamerası Aktif</span>
+                    <button type="button" onclick="stopCameraScanner()" style="background:#dc2626; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">Kamerayı Kapat</button>
+                </div>
+                <div id="reader"></div>
+                <small style="display:block; margin-top:8px; color:#cbd5e1;">Kamerayı ürün barkoduna veya QR koda doğrultunuz. Barkod algılandığında sesli teyit verilecek ve fiili miktar 1 artırılacaktır.</small>
+            </div>
+
             <table class="table-items" id="itemsTable">
                 <thead>
                     <tr>
                         <th style="width: 140px;">Stok Kodu / Barkod</th>
                         <th>Ürün Adı ve Cinsi</th>
                         <th style="width: 80px;">Birim</th>
-                        <th style="width: 90px;">Kayıtlı Stok</th>
+                        <th style="width: 90px;">Kayıtlı / İrsaliye</th>
                         <th style="width: 90px;">Fiili Sayım</th>
                         <th style="width: 100px;">Birim Maliyet (TL)</th>
                         <th style="width: 90px;">Fark</th>
@@ -177,10 +227,10 @@
                 </tbody>
             </table>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                <button type="button" class="btn-add-row" onclick="addRow()">➕ Yeni Kalem Ekle</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap:wrap; gap:10px;">
+                <span id="reconciliationTag" style="font-size:0.82rem; font-weight:700; color:var(--primary); display:none;"></span>
                 <div style="font-size: 0.9rem; font-weight: 700;">
-                    Toplam Kalem: <span id="lblTotalItems">0</span> | Net Fark Tutarı: <span id="lblNetDiff" style="color: var(--primary);">0.00 TL</span>
+                    Toplam Kalem: <span id="lblTotalItems">0</span> | Net Fark: <span id="lblNetDiff" style="color: var(--primary);">0.00 TL</span>
                 </div>
             </div>
         </div>
@@ -189,6 +239,34 @@
             <span>📋 Sayım Tutanağını Onayla & Resmi Envanter Çıktısını Al</span>
         </button>
     </form>
+
+    <!-- e-İrsaliye Modal -->
+    <div class="modal" id="eirsaliyeModal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:14px;">
+                <h3 style="font-size:1.1rem; color:var(--secondary);">🧾 e-İrsaliye Karşılaştırma & Mutabakat</h3>
+                <button type="button" onclick="closeEirsaliyeModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">✖</button>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                Resmi e-İrsaliye sevk irsaliyesi kalemlerini yükleyerek veya yapıştırarak fiili sayım ile otomatik karşılaştırın.
+            </p>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.8rem; font-weight:700;">e-İrsaliye No</label>
+                <input type="text" id="modalIrsaliyeNo" value="GIB2026000004589" style="margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label style="font-size:0.8rem; font-weight:700;">İrsaliye Kalemleri JSON veya UBL XML</label>
+                    <button type="button" class="btn-action" style="padding:2px 8px; font-size:0.75rem;" onclick="loadSampleEirsaliye()">📋 Örnek e-İrsaliye Yükle</button>
+                </div>
+                <textarea id="modalIrsaliyeJson" style="font-family:monospace; font-size:0.8rem; height:120px;" placeholder='[{"stock_code":"STK-001","name":"A4 Fotokopi Kağıdı","quantity":100},{"stock_code":"STK-002","name":"Toner Kartuş","quantity":40}]'></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn-action" onclick="closeEirsaliyeModal()">Vazgeç</button>
+                <button type="button" class="btn-action btn-action-primary" onclick="executeEirsaliyeReconciliation()">⚙️ Mutabakatı Çalıştır</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Success View & Printable Protocol -->
     <div class="result-box" id="resultBox">
@@ -214,9 +292,14 @@
                     <td style="padding: 4px 0;"><b>Sayım Tarihi:</b> <span id="prDate"></span></td>
                 </tr>
                 <tr>
-                    <td style="padding: 4px 0;" colspan="2"><b>Sayım Amacı / Türü:</b> <span id="prType"></span></td>
+                    <td style="padding: 4px 0;"><b>Sayım Amacı / Türü:</b> <span id="prType"></span></td>
+                    <td style="padding: 4px 0;"><b>Barkod Sayım Desteği:</b> <span id="prBarcodeTag">Kullanıldı</span></td>
                 </tr>
             </table>
+
+            <div id="prEirsaliyeBox" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:0.85rem; margin-bottom:14px;">
+                <b>🧾 e-İrsaliye Mutabakat Bilgisi:</b> <span id="prEirsaliyeSummary"></span>
+            </div>
 
             <p style="margin-bottom: 10px;">
                 Yukarıda bilgileri yazılı işletmede teşkil olunan Sayım Heyeti huzurunda, işletme kayıtlarında yer alan emtia ile depoda fiilen mevcut bulunan emtianın sayımı, tartımı ve tespiti yapılmış olup neticeleri aşağıya dercedilmiştir:
@@ -225,11 +308,11 @@
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.85rem; border: 1px solid #000;">
                 <thead>
                     <tr style="background: #f1f5f9; border-bottom: 1px solid #000;">
-                        <th style="border: 1px solid #000; padding: 6px;">Stok Kodu</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Stok Kodu / Barkod</th>
                         <th style="border: 1px solid #000; padding: 6px;">Cinsi / Malın Nevi</th>
                         <th style="border: 1px solid #000; padding: 6px;">Birim</th>
-                        <th style="border: 1px solid #000; padding: 6px;">Kayıtlı</th>
-                        <th style="border: 1px solid #000; padding: 6px;">Fiili</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Kayıtlı / İrsaliye</th>
+                        <th style="border: 1px solid #000; padding: 6px;">Fiili Sayım</th>
                         <th style="border: 1px solid #000; padding: 6px;">B. Maliyet</th>
                         <th style="border: 1px solid #000; padding: 6px;">Fark</th>
                         <th style="border: 1px solid #000; padding: 6px;">Fark Tutarı</th>
@@ -270,6 +353,185 @@
 
 <script>
 let items = [];
+let html5QrCode = null;
+let barcodeCountUsed = false;
+let eirsaliyeMatched = false;
+let eirsaliyeNo = '';
+let reconciliationSummary = '';
+let lastScannedTime = 0;
+
+function playBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e) {}
+}
+
+function showScanToast(msg) {
+    const t = document.getElementById('scanToast');
+    t.style.display = 'block';
+    t.innerText = msg;
+    setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+// Barcode Camera Scanner Implementation
+function toggleCameraScanner() {
+    const box = document.getElementById('scannerBox');
+    if (box.style.display === 'block') {
+        stopCameraScanner();
+    } else {
+        startCameraScanner();
+    }
+}
+
+function startCameraScanner() {
+    document.getElementById('scannerBox').style.display = 'block';
+    barcodeCountUsed = true;
+
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onBarcodeSuccess,
+        (errorMessage) => {}
+    ).catch(err => {
+        alert('Kamera açılamadı: ' + err);
+        stopCameraScanner();
+    });
+}
+
+function stopCameraScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('scannerBox').style.display = 'none';
+        }).catch(() => {
+            document.getElementById('scannerBox').style.display = 'none';
+        });
+    } else {
+        document.getElementById('scannerBox').style.display = 'none';
+    }
+}
+
+function onBarcodeSuccess(decodedText) {
+    const now = Date.now();
+    if (now - lastScannedTime < 1200) return; // Prevent duplicate rapid reads
+    lastScannedTime = now;
+
+    playBeep();
+    if (navigator.vibrate) navigator.vibrate(80);
+
+    const cleanCode = decodedText.trim();
+    let existing = items.find(x => x.stock_code.toLowerCase() === cleanCode.toLowerCase());
+
+    if (existing) {
+        existing.phys_qty += 1;
+        showScanToast(`✅ Barkod Okundu: ${cleanCode} (${existing.name}) -> Fiili Miktar: ${existing.phys_qty}`);
+    } else {
+        const id = Date.now() + Math.floor(Math.random() * 100);
+        items.push({
+            id,
+            stock_code: cleanCode,
+            name: `Barkodlu Ürün (${cleanCode})`,
+            unit: 'Adet',
+            book_qty: 0,
+            phys_qty: 1,
+            unit_cost: 100.0
+        });
+        showScanToast(`✅ Yeni Ürün Barkodu Eklendi: ${cleanCode} (Fiili Miktar: 1)`);
+    }
+
+    renderTableRows();
+}
+
+// e-İrsaliye Modal and Reconciliation
+function openEirsaliyeModal() {
+    document.getElementById('eirsaliyeModal').style.display = 'flex';
+}
+
+function closeEirsaliyeModal() {
+    document.getElementById('eirsaliyeModal').style.display = 'none';
+}
+
+function loadSampleEirsaliye() {
+    const sample = [
+        { stock_code: "STK-001", name: "A4 Fotokopi Kağıdı", quantity: 100 },
+        { stock_code: "STK-002", name: "Toner Kartuş", quantity: 40 }
+    ];
+    document.getElementById('modalIrsaliyeJson').value = JSON.stringify(sample, null, 2);
+}
+
+async function executeEirsaliyeReconciliation() {
+    const rawJson = document.getElementById('modalIrsaliyeJson').value.trim();
+    eirsaliyeNo = document.getElementById('modalIrsaliyeNo').value.trim() || 'GIB2026-IRS-001';
+
+    let irsItems = [];
+    try {
+        irsItems = JSON.parse(rawJson);
+    } catch(e) {
+        alert('Lütfen geçerli bir JSON listesi giriniz.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/eirsaliye-mutabakat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                counted_items: items,
+                eirsaliye_items: irsItems,
+                irsaliye_no: eirsaliyeNo
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            eirsaliyeMatched = true;
+            reconciliationSummary = data.summary;
+
+            // Apply e-İrsaliye quantities to book_qty
+            irsItems.forEach(irs => {
+                const match = items.find(it => it.stock_code.toLowerCase() === (irs.stock_code||'').toLowerCase());
+                if (match) {
+                    match.book_qty = irs.quantity;
+                }
+            });
+
+            renderTableRows();
+            closeEirsaliyeModal();
+
+            const tag = document.getElementById('reconciliationTag');
+            tag.style.display = 'inline-block';
+            tag.innerText = `🧾 ${data.summary}`;
+            alert(`Mutabakat Sonucu:\n${data.summary}\n\n${data.accounting_note}`);
+            return;
+        }
+    } catch(e) {}
+
+    // Fallback local reconciliation
+    irsItems.forEach(irs => {
+        const match = items.find(it => it.stock_code.toLowerCase() === (irs.stock_code||'').toLowerCase());
+        if (match) {
+            match.book_qty = irs.quantity;
+        }
+    });
+    eirsaliyeMatched = true;
+    reconciliationSummary = `e-İrsaliye (${eirsaliyeNo}) mutabakatı işlendi.`;
+    renderTableRows();
+    closeEirsaliyeModal();
+    alert('e-İrsaliye sevk miktarları sayım tablosuna aktarıldı.');
+}
 
 function addRow(stockCode='', name='', unit='Adet', bookQty=0, physQty=0, cost=0) {
     const id = Date.now() + Math.floor(Math.random() * 100);
@@ -290,14 +552,14 @@ function updateRow(id, field, val) {
     } else {
         it[field] = val;
     }
-    renderTableRows(false);
+    renderTableRows();
 }
 
-function renderTableRows(rebuildInputs=true) {
+function renderTableRows() {
     const tbody = document.getElementById('itemsTbody');
     let netDiff = 0;
 
-    tbody.innerHTML = items.map((it, idx) => {
+    tbody.innerHTML = items.map((it) => {
         const diffQty = it.phys_qty - it.book_qty;
         const diffVal = diffQty * it.unit_cost;
         netDiff += diffVal;
@@ -358,6 +620,10 @@ async function handleStokSubmit(e) {
         auditor_name: document.getElementById('auditorName').value.trim(),
         items_json: JSON.stringify(items),
         total_items: items.length,
+        barcode_count_used: barcodeCountUsed ? 1 : 0,
+        eirsaliye_matched: eirsaliyeMatched ? 1 : 0,
+        eirsaliye_no: eirsaliyeNo,
+        reconciliation_summary: reconciliationSummary,
         status: 'Tutanak Tanzim Edildi',
         created_at: new Date().toISOString()
     };
@@ -391,9 +657,15 @@ async function handleStokSubmit(e) {
     document.getElementById('prLoc').innerText = payload.warehouse_name;
     document.getElementById('prDate').innerText = countDate ? new Date(countDate).toLocaleString('tr-TR') : '-';
     document.getElementById('prType').innerText = payload.count_type;
+    document.getElementById('prBarcodeTag').innerText = barcodeCountUsed ? 'Kamera / QR Okuyucu Kullanıldı' : 'Manuel Sayım';
     document.getElementById('prHead').innerText = payload.head_officer;
     document.getElementById('prOff').innerText = payload.count_officer;
     document.getElementById('prAud').innerText = payload.auditor_name || 'Mali Müşavir';
+
+    if (eirsaliyeMatched) {
+        document.getElementById('prEirsaliyeBox').style.display = 'block';
+        document.getElementById('prEirsaliyeSummary').innerText = `${reconciliationSummary} (VUK m.186 uyarınca 197/397 hesap intikali)`;
+    }
 
     const pbody = document.getElementById('prItemsBody');
     pbody.innerHTML = items.map(it => {
@@ -419,9 +691,8 @@ function escapeHtml(s) {
 }
 
 window.onload = () => {
-    // default 2 sample items
-    addRow('STK-001', 'Ticari Mal A (A4 Fotokopi Kağıdı)', 'Koli', 100, 95, 250);
-    addRow('STK-002', 'Ticari Mal B (Toner Kartuş)', 'Adet', 40, 42, 850);
+    addRow('STK-001', 'A4 Fotokopi Kağıdı', 'Koli', 100, 95, 250);
+    addRow('STK-002', 'Toner Kartuş', 'Adet', 40, 42, 850);
 };
 </script>
 
