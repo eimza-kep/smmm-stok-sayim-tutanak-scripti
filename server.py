@@ -1,3 +1,4 @@
+FIRE_ZAYIAT_TOLERANS_ORANI = 0.02 # Yasal %2 standart sayim toleransi
 import http.server
 import socketserver
 import json
